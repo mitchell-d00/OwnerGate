@@ -1,0 +1,20 @@
+INFO:     Started server process [3550]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:47115 (Press CTRL+C to quit)
+INFO:     127.0.0.1:45284 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "POST /api/admin/machines HTTP/1.1" 201 Created
+INFO:     127.0.0.1:45290 - "PUT /api/admin/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "PUT /api/admin/policies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "POST /api/challenges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "GET /resources/demo-9e701b46 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "GET /resources/demo-9e701b46 HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:45290 - "PATCH /api/admin/machines/demo-9e701b46 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "POST /api/challenges HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "GET /resources/demo-9e701b46 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:45290 - "GET /api/admin/snapshot HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45290 - "GET /api/admin/audit/export HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3550]

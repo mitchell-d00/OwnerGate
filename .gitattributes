@@ -1,0 +1,2 @@
+# Preserve captured test/tool output verbatim, including diagnostic whitespace.
+docs/evidence/*.txt -whitespace

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OwnerGate · Machine Access Gateway</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <aside>
+      <a href="/" class="brand"
+        ><span class="logo">O</span>OwnerGate<span class="version">0.1</span></a
+      >
+      <p class="eyebrow">RESOURCE CONTROL</p>
+      <nav aria-label="Main navigation">
+        <button data-view="overview" aria-current="page">
+          ◈ &nbsp; Overview</button
+        ><button data-view="machines">◎ &nbsp; Machine Registry</button
+        ><button data-view="policies">◇ &nbsp; Resource Policies</button
+        ><button data-view="traffic">≋ &nbsp; Traffic Monitor</button
+        ><button data-view="audit">▤ &nbsp; Audit Center</button
+        ><button data-view="lab">⚗ &nbsp; Testing Laboratory</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="dot"></span> Single-host pilot
+        <p>Your resources.<br />Your rules.<br />Verified machine access.</p>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header>
+        <span>Workspace <span class="muted">/</span> Local pilot</span
+        ><button id="lock">Lock workspace</button>
+      </header>
+      <main id="main">
+        <div id="login" class="login card">
+          <p class="eyebrow">OWNER ACCESS</p>
+          <h1>Take control of machine access.</h1>
+          <p>
+            Connect to your gateway with the administrator token you configured
+            at startup.
+          </p>
+          <form id="login-form">
+            <label
+              >Administrator token<input
+                id="token"
+                type="password"
+                autocomplete="off"
+                required
+                minlength="32" /></label
+            ><button class="primary">Open workspace →</button>
+          </form>
+          <p class="muted">
+            Your token stays in this tab’s memory. A reload locks the workspace.
+          </p>
+        </div>
+        <div id="app" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">OWNERGATE / CONTROL PLANE</p>
+              <h1 id="title">Overview</h1>
+              <p id="subtitle">A clear view of who reaches your resources.</p>
+            </div>
+            <button id="refresh">↻ Refresh</button>
+          </div>
+          <div class="notice">
+            <span class="dot"></span> Live gateway data
+            <span class="muted"
+              >· Actual HTTP decisions · Operator information is
+              self-declared</span
+            >
+          </div>
+          <section id="content"></section>
+        </div>
+        <p id="message" role="status" aria-live="polite"></p>
+      </main>
+      <footer>
+        OwnerGate · Machine Access Gateway
+        <span>Identity proves key control. Your policy decides access.</span>
+      </footer>
+    </div>
+  </body>
+</html>
