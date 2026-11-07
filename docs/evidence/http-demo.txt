@@ -1,0 +1,2 @@
+{"valid": true, "count": 7, "head": "e9f2b4c1f97a39c39430783471d17e06cbe6ba4a6f6d5eadad550549adad11ea"}
+{"allowed": 200, "unknown": 401, "revoked": 403, "dashboard_decisions": ["allow", "deny", "deny"], "evidence": "docs/evidence/http-demo/audit.json"}

@@ -1,0 +1,94 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________________ test_browser_owner_journey __________________________
+
+pilot = (<fastapi.applications.FastAPI object at 0x7fc6313e81d0>, <httpx.Client object at 0x7fc630ed8dd0>, [None], PosixPath('/tmp/pytest-of-agent/pytest-4/test_browser_owner_journey0'))
+
+    def test_browser_owner_journey(pilot):
+        _,client,current,_=pilot
+        current[0]=None
+        evidence=Path(os.environ.get('OWNERGATE_SCREENSHOTS','/tmp/ownergate-screenshots'))
+        evidence.mkdir(parents=True,exist_ok=True)
+        with sync_playwright() as p:
+            executable=os.environ.get('CHROMIUM_EXECUTABLE','/usr/bin/chromium')
+            browser=p.chromium.launch(executable_path=executable if Path(executable).exists() else None,args=['--no-sandbox'])
+            context=browser.new_context(viewport={'width':1440,'height':1000})
+            page=context.new_page()
+            errors=[]
+            page.on('pageerror',lambda e:errors.append(str(e)))
+            page.goto(str(client.base_url))
+            expect(page.locator('#login')).to_be_visible()
+            page.locator('#token').fill('wrong-secret-that-is-longer-than-thirty-two')
+            page.get_by_role('button',name='Open workspace').click()
+            expect(page.locator('#message')).to_contain_text('admin_authentication_required')
+            page.locator('#token').fill(TOKEN)
+            page.get_by_role('button',name='Open workspace').click()
+            expect(page.locator('#app')).to_be_visible()
+            page.locator('[data-view="lab"]').click()
+            checks=page.get_by_role('button',name='Run HTTP check')
+            assert checks.count()==8
+            for index in range(8):
+                checks.nth(index).click()
+                expect(page.locator('#message')).to_contain_text('PASS',timeout=20000)
+            page.locator('[data-view="overview"]').click()
+            expect(page.locator('.stat strong').nth(0)).to_have_text('9')
+            expect(page.locator('.stat strong').nth(1)).to_have_text('2')
+            expect(page.locator('.stat strong').nth(2)).to_have_text('7')
+            page.screenshot(path=str(evidence/'overview-desktop.png'),full_page=True)
+            page.locator('[data-view="machines"]').click()
+            expect(page.get_by_text('Registered machine participants',exact=True)).to_be_visible()
+            page.locator('[data-view="policies"]').click()
+            expect(page.get_by_text('Protect a real endpoint',exact=True)).to_be_visible()
+            editors=page.locator('textarea')
+            editors.nth(0).fill('{')
+            page.get_by_role('button',name='Validate & save').nth(0).click()
+            expect(page.locator('#message')).not_to_be_empty()
+            page.locator('[data-view="traffic"]').click()
+            page.get_by_label('Decision',exact=True).fill('deny')
+            assert page.locator('tbody tr').count()==7
+            page.locator('[data-view="audit"]').click()
+            page.get_by_role('button',name='Check integrity').click()
+            expect(page.locator('#message')).to_contain_text('"valid": true')
+            with page.expect_download() as dl:
+                page.get_by_role('button',name='Export signed evidence').click()
+            assert dl.value.suggested_filename=='ownergate-audit.json'
+>           context.set_viewport_size({'width':390,'height':844})
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'BrowserContext' object has no attribute 'set_viewport_size'
+
+tests/test_browser.py:56: AttributeError
+
+During handling of the above exception, another exception occurred:
+
+pilot = (<fastapi.applications.FastAPI object at 0x7fc6313e81d0>, <httpx.Client object at 0x7fc630ed8dd0>, [None], PosixPath('/tmp/pytest-of-agent/pytest-4/test_browser_owner_journey0'))
+
+    def test_browser_owner_journey(pilot):
+        _,client,current,_=pilot
+        current[0]=None
+        evidence=Path(os.environ.get('OWNERGATE_SCREENSHOTS','/tmp/ownergate-screenshots'))
+        evidence.mkdir(parents=True,exist_ok=True)
+>       with sync_playwright() as p:
+             ^^^^^^^^^^^^^^^^^
+
+tests/test_browser.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/playwright/sync_api/_context_manager.py:109: in __exit__
+    self._connection.stop_sync()
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:365: in stop_sync
+    self._loop.run_until_complete(self._transport.wait_until_stopped())
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:667: in run_until_complete
+    self._check_running()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <_UnixSelectorEventLoop running=True closed=False debug=False>
+
+    def _check_running(self):
+        if self.is_running():
+>           raise RuntimeError('This event loop is already running')
+E           RuntimeError: This event loop is already running
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:626: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/test_browser.py::test_browser_owner_journey - RuntimeError: This...
+1 failed in 2.79s
+sys:1: RuntimeWarning: coroutine 'PipeTransport.wait_until_stopped' was never awaited

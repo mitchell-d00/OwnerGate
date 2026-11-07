@@ -1,0 +1,48 @@
+ Network ownergate-verification_default  Creating
+ Network ownergate-verification_default  Created
+ Volume ownergate-verification_gateway-state  Creating
+ Volume ownergate-verification_gateway-state  Created
+ Container ownergate-verification-gateway-1  Creating
+ Container ownergate-verification-gateway-1  Created
+ Container ownergate-verification-gateway-1  Starting
+ Container ownergate-verification-gateway-1  Started
+ Container ownergate-verification-gateway-1  Waiting
+ Container ownergate-verification-gateway-1  Healthy
+{"valid": true, "count": 7, "head": "66a12738e93cfe89bad0d3bd82ffd4ce9e64daa16234b1f9d6ac2b2a9d504566"}
+{"allowed": 200, "unknown": 401, "revoked": 403, "dashboard_decisions": ["allow", "deny", "deny"], "evidence": "docs/evidence/compose-demo/audit.json"}
+ Container ownergate-verification-gateway-1  Restarting
+ Container ownergate-verification-gateway-1  Started
+gateway-1  | INFO:     Started server process [8]
+gateway-1  | INFO:     Waiting for application startup.
+gateway-1  | INFO:     Application startup complete.
+gateway-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+gateway-1  | INFO:     127.0.0.1:54634 - "GET /health HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "POST /api/admin/machines HTTP/1.1" 201 Created
+gateway-1  | INFO:     172.18.0.1:38812 - "PUT /api/admin/resources HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "PUT /api/admin/policies HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "POST /api/challenges HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "GET /resources/demo-adc5c954 HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "GET /resources/demo-adc5c954 HTTP/1.1" 401 Unauthorized
+gateway-1  | INFO:     172.18.0.1:38812 - "PATCH /api/admin/machines/demo-adc5c954 HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "POST /api/challenges HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "GET /resources/demo-adc5c954 HTTP/1.1" 403 Forbidden
+gateway-1  | INFO:     172.18.0.1:38812 - "GET /api/admin/snapshot HTTP/1.1" 200 OK
+gateway-1  | INFO:     172.18.0.1:38812 - "GET /api/admin/audit/export HTTP/1.1" 200 OK
+gateway-1  | INFO:     Shutting down
+gateway-1  | INFO:     Waiting for application shutdown.
+gateway-1  | INFO:     Application shutdown complete.
+gateway-1  | INFO:     Finished server process [8]
+gateway-1  | INFO:     Started server process [7]
+gateway-1  | INFO:     Waiting for application startup.
+gateway-1  | INFO:     Application startup complete.
+gateway-1  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+gateway-1  | INFO:     172.18.0.1:38860 - "GET /api/admin/audit/verify HTTP/1.1" 200 OK
+ Container ownergate-verification-gateway-1  Stopping
+ Container ownergate-verification-gateway-1  Stopped
+ Container ownergate-verification-gateway-1  Removing
+ Container ownergate-verification-gateway-1  Removed
+ Network ownergate-verification_default  Removing
+ Volume ownergate-verification_gateway-state  Removing
+ Volume ownergate-verification_gateway-state  Removed
+ Network ownergate-verification_default  Removed
+Compose restart: persisted seven signed records and audit key verified

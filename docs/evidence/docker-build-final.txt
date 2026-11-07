@@ -1,0 +1,62 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 648B done
+#1 DONE 0.0s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 0.3s
+
+#3 docker-image://docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
+#3 CACHED
+
+#4 [internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 111B done
+#5 DONE 0.0s
+
+#6 [stage-0 1/7] FROM docker.io/library/python:3.12-slim@sha256:4840d514c583a4d3d8cad3940e68dee6f0f6f3635c12fcd0a3d74c21a5b93a54
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 27.00kB done
+#7 DONE 0.0s
+
+#8 [stage-0 2/7] WORKDIR /app
+#8 CACHED
+
+#9 [stage-0 3/7] COPY requirements.lock .
+#9 CACHED
+
+#10 [stage-0 4/7] RUN --mount=type=secret,id=proxy_ca     if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi;     pip install --no-cache-dir -r requirements.lock
+#10 CACHED
+
+#11 [stage-0 5/7] COPY pyproject.toml README.md ./
+#11 DONE 0.8s
+
+#12 [stage-0 6/7] COPY ownergate ./ownergate
+#12 DONE 0.3s
+
+#13 [stage-0 7/7] RUN pip install --no-index --no-deps --no-build-isolation . && useradd --uid 10001 --create-home ownergate && mkdir /state && chown ownergate:ownergate /state
+#13 0.655 Processing /app
+#13 0.656   Preparing metadata (pyproject.toml): started
+#13 0.834   Preparing metadata (pyproject.toml): finished with status 'done'
+#13 0.834 Building wheels for collected packages: ownergate
+#13 0.834   Building wheel for ownergate (pyproject.toml): started
+#13 1.006   Building wheel for ownergate (pyproject.toml): finished with status 'done'
+#13 1.007   Created wheel for ownergate: filename=ownergate-0.1.0-py3-none-any.whl size=20775 sha256=4a5b0c88a6a806fa186e0978806f899b0a061eae462248286492ce77aa58c1e1
+#13 1.007   Stored in directory: /tmp/pip-ephem-wheel-cache-vu8mv2d5/wheels/54/1b/b7/aa63e25c8f14f4f2ae7b04e6097bdecb770e455c5c1ee0a600
+#13 1.008 Successfully built ownergate
+#13 1.009 Installing collected packages: ownergate
+#13 1.024 Successfully installed ownergate-0.1.0
+#13 1.024 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#13 DONE 1.1s
+
+#14 exporting to image
+#14 exporting layers
+#14 exporting layers 0.2s done
+#14 writing image sha256:98b588d58388e2727b7a87eba43809ebce637aa5bea34482b1206c04dadde866 done
+#14 naming to docker.io/library/ownergate:0.1.0 done
+#14 DONE 0.2s

@@ -1,0 +1,3 @@
+Managed Docker daemon reachable. Docker 29.9.2; Compose 2.40.3.
+Rootless daemon without cgroups; local build, Compose start, HTTP demo and restart passed.
+See docker-build-final.txt and compose-demo.txt for actual command output.
