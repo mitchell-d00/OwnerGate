@@ -1,0 +1,11 @@
+WARNING: The directory '/home/agent/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
+Processing /workspace/OwnerGate
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: ownergate
+  Building wheel for ownergate (pyproject.toml): started
+  Building wheel for ownergate (pyproject.toml): finished with status 'done'
+  Created wheel for ownergate: filename=ownergate-0.1.0-py3-none-any.whl size=21800 sha256=8f2e53e8c5684ac4839e5cbb8384e87ba4e6099ccde9d14d7d3823acf1dabc59
+  Stored in directory: /tmp/pip-ephem-wheel-cache-ntg_ybe7/wheels/50/9b/88/8ea4603a71c53f5fcdf2e8c79c2681491ef54c36db3d42c8c4
+Successfully built ownergate
+PASS: wheel contains only the ownergate package and its metadata; backend static assets retained.

@@ -2,6 +2,12 @@
 
 **Your resources. Your rules. Verified machine access.**
 
+**[Open the interactive OwnerGate site](https://mitchell-d00.github.io/OwnerGate/)** · [GitHub Pages guide](docs/PAGES.md)
+
+The public site is a clearly labeled browser demonstration. For real HTTP
+enforcement, run the server below. Never enter operational credentials into
+the public demo.
+
 v0.1.0 — Machine Access Gateway. An independent, executable single-host pilot
 for owner-controlled machine access. FastAPI enforces authorization at an actual
 HTTP boundary, backed by an Ed25519 machine registry, one-use request proofs,

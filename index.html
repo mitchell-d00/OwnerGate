@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="OwnerGate — your resources, your rules, verified machine access. Explore the browser demonstration and run the real HTTP gateway."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'"
+    />
+    <title>OwnerGate · Your resources. Your rules.</title>
+    <link rel="icon" href="site/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="site/style.css" />
+    <script defer src="site/demo.js"></script>
+    <script defer src="site/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <aside>
+      <a href="./" class="brand"
+        ><span class="logo">O</span>OwnerGate<span class="version">0.1</span></a
+      >
+      <p class="eyebrow">MACHINE ACCESS, ON YOUR TERMS</p>
+      <nav aria-label="Main navigation">
+        <button data-view="overview" aria-current="page">
+          ◈ &nbsp; Overview
+        </button>
+        <button data-view="machines">◎ &nbsp; Machine Registry</button>
+        <button data-view="policies">◇ &nbsp; Resource Policies</button>
+        <button data-view="traffic">≋ &nbsp; Traffic Monitor</button>
+        <button data-view="audit">▤ &nbsp; Audit Center</button>
+        <button data-view="lab">⚗ &nbsp; Testing Laboratory</button>
+        <button data-view="guide">↗ &nbsp; Run the gateway</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="dot"></span> Open research. Working software.
+        <p>Your resources.<br />Your rules.<br />Verified machine access.</p>
+        <a href="https://github.com/mitchell-d00/OwnerGate"
+          >Source on GitHub ↗</a
+        >
+      </div>
+    </aside>
+    <div class="workspace">
+      <header>
+        <span
+          >OwnerGate <span class="muted">/</span> Interactive browser
+          demonstration</span
+        ><button id="reset">Reset demo</button>
+      </header>
+      <main id="main">
+        <div class="demo-banner">
+          <strong>Browser demonstration</strong
+          ><span
+            >Everything here runs in this tab using disposable demo keys. These
+            are simulated access decisions, not HTTP enforcement. No
+            administrator token is needed.</span
+          >
+        </div>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">YOUR RESOURCES. YOUR RULES.</p>
+            <h1 id="title">Make machine access a decision.</h1>
+            <p id="subtitle">
+              Recognize the key. Check permission. Inspect the evidence.
+            </p>
+          </div>
+          <a
+            class="action-link"
+            href="https://github.com/mitchell-d00/OwnerGate"
+            >View source ↗</a
+          >
+        </div>
+        <noscript
+          ><div class="card">
+            Enable JavaScript for the interactive demonstration.
+            <a
+              href="https://github.com/mitchell-d00/OwnerGate#run-locally-python-312"
+              >Install the real gateway from GitHub.</a
+            >
+          </div></noscript
+        >
+        <p id="message" role="status" aria-live="polite">
+          Preparing disposable Ed25519 demonstration keys…
+        </p>
+        <section id="content" aria-label="Workspace content"></section>
+      </main>
+      <footer>
+        <span>OwnerGate · v0.1.0 — Machine Access Gateway</span
+        ><span
+          >GitHub Pages demonstration ·
+          <a
+            href="https://github.com/mitchell-d00/OwnerGate/blob/main/docs/SECURITY.md"
+            >Security & boundaries</a
+          ></span
+        >
+      </footer>
+    </div>
+  </body>
+</html>
