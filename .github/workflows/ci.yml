@@ -19,12 +19,12 @@ jobs:
           CHROMIUM_EXECUTABLE: /nonexistent/use-playwright-managed-chromium
           OWNERGATE_SCREENSHOTS: test-evidence
       - run: pip-audit -r requirements.lock --disable-pip --no-deps
-      - run: docker compose build
       - run: |
           export OWNERGATE_ADMIN_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          trap 'docker compose down -v' EXIT
+          docker compose build
           docker compose up -d --wait
           python scripts/pilot_demo.py --output test-evidence/compose-demo
-          docker compose down -v
       - uses: actions/upload-artifact@v4
         if: always()
         with:
