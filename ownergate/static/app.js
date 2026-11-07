@@ -1,32 +1,669 @@
-'use strict';
-let token = '', snapshot = {}, view = 'overview';
-const $ = s => document.querySelector(s);
-const titles = {overview:['Overview','A clear view of who reaches your resources.'],machines:['Machine Registry','Recognized keys, scoped credentials, and lifecycle controls.'],policies:['Resource Policies','Your resources. Your rules. Enforced at the HTTP boundary.'],traffic:['Traffic Monitor','Inspect actual requests and understand every decision.'],audit:['Audit Center','Inspect, export, and independently verify decision evidence.'],lab:['Testing Laboratory','Adversarial checks against your actual HTTP gateway.']};
-function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
-function message(t){$('#message').textContent=t;}
-async function api(path,method='GET',data){const r=await fetch(path,{method,headers:{Authorization:'Bearer '+token,...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});const body=await r.json();if(!r.ok)throw Error(JSON.stringify(body));return body;}
-async function refresh(){try{snapshot=await api('/api/admin/snapshot');$('#login').hidden=true;$('#app').hidden=false;render();}catch(e){message(e.message);}}
-$('#login-form').onsubmit=async e=>{e.preventDefault();token=$('#token').value;$('#token').value='';await refresh();};
-$('#lock').onclick=()=>{token='';snapshot={};$('#app').hidden=true;$('#login').hidden=false;$('#content').replaceChildren();message('Workspace locked.');};
-$('#refresh').onclick=refresh;
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render();});
-function card(title){const c=el('div',undefined,'card');c.append(el('h2',title));return c;}
-function button(text,fn,cls){const b=el('button',text,cls);b.type='button';b.onclick=async()=>{try{b.disabled=true;await fn();}catch(e){message(e.message);}finally{b.disabled=false;}};return b;}
-function table(headings,rows){const wrap=el('div',undefined,'table-wrap');if(!rows.length){wrap.append(el('p','No records yet. Send a request to see actual gateway activity.','empty'));return wrap;}const t=el('table'),h=el('tr');headings.forEach(x=>h.append(el('th',x)));const th=el('thead');th.append(h);t.append(th);const tb=el('tbody');rows.forEach(row=>{const tr=el('tr');row.forEach(v=>{const td=el('td');td.append(v instanceof Node?v:document.createTextNode(String(v??'')));tr.append(td);});tb.append(tr);});t.append(tb);wrap.append(t);return wrap;}
-function pill(text){return el('span',text,'pill '+text);}
-function raw(data){const d=el('details');d.append(el('summary','Inspect evidence'),el('pre',JSON.stringify(data,null,2)));return d;}
-function formField(form,label,name,value='',type='text'){const l=el('label',label),i=el(type==='textarea'?'textarea':'input');i.name=name;i.value=value;if(type!=='textarea')i.type=type;i.required=true;l.append(i);form.append(l);return i;}
-function jsonEditor(title,path,example){const c=card(title),f=el('form'),i=formField(f,'Validated JSON configuration','json',JSON.stringify(example,null,2),'textarea');f.append(el('button','Validate & save','primary'));f.onsubmit=async e=>{e.preventDefault();try{await api(path,'PUT',JSON.parse(i.value));await refresh();message('Configuration validated and saved.');}catch(e){message(e.message);}};c.append(f);return c;}
-function explanation(reason){const reasons={policy_allow:"A valid proof matched an allow rule.",unknown_identity:"No recognized machine identity was proven.",missing_or_replayed_challenge:"The challenge is missing or has already been used.",challenge_expired_or_clock_invalid:"The challenge expired or its issue time is in the future.",request_binding_mismatch:"This proof belongs to a different request or key version.",invalid_signature:"The signature does not match the registered key.",credential_revoked:"The owner permanently revoked this credential.",credential_suspended:"The owner suspended this credential.",credential_expired:"The credential has expired.",credential_not_yet_valid:"The credential is not valid yet.",resource_outside_scope:"The credential does not cover this resource.",explicit_deny:"An owner deny rule blocks this operation.",no_allow_policy:"No valid owner rule permits this operation.",unsupported_request_shape:"Only GET requests without a query or body are supported.",unknown_protected_resource:"This protected resource has not been registered.",rate_limited:"The request rate exceeded the gateway limit."};return reasons[reason]||reason.replaceAll("_"," ");}
-function eventsTable(events){return table(['Time','Machine','Resource / Action','Decision','Explanation'],events.map(e=>[new Date(e.timestamp*1000).toLocaleString(),e.machine,e.resource+' · '+e.action,pill(e.decision),explanation(e.reason)]));}
-function render(){message('');$('#title').textContent=titles[view][0];$('#subtitle').textContent=titles[view][1];document.querySelectorAll('[data-view]').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const c=$('#content');c.replaceChildren();const events=snapshot.events.filter(e=>e.kind==='gateway').reverse(),now=Math.floor(Date.now()/1000);
-if(view==='overview'){const s=el('div',undefined,'stats');[['Total requests',events.length,'At the protected boundary'],['Allowed requests',events.filter(e=>e.decision==='allow').length,'Policy-authorized access'],['Denied requests',events.filter(e=>e.decision==='deny').length,'Blocked before content delivery'],['Unidentified requests',events.filter(e=>!e.identity_verified).length,'No verified machine proof']].forEach(([title,n,note])=>{const v=el('div',undefined,'stat');v.append(el('span',title),el('strong',n),el('small',note));s.append(v);});c.append(s);const r=card('Recent access decisions');r.append(eventsTable(events.slice(0,10)));c.append(r);const info=card('The boundary you control');info.append(el('p',snapshot.resources.length+' protected resources · '+snapshot.machines.length+' registered machines · policy version '+snapshot.policy_version),el('p','A verified key does not grant permission. A matching allow rule is required; a matching deny rule always wins.','muted'));c.append(info);}
-if(view==='machines'){const list=card('Registered machine participants');list.append(table(['Machine / Operator','Credential','Scope','Lifecycle'],snapshot.machines.map(m=>{const controls=el('div');controls.append(button('Revoke',async()=>{await api('/api/admin/machines/'+m.id,'PATCH',{state:'revoked'});await refresh();},'danger'),button(m.state==='suspended'?'Activate':'Suspend',async()=>{await api('/api/admin/machines/'+m.id,'PATCH',{state:m.state==='suspended'?'active':'suspended'});await refresh();}));const d=raw(m);controls.append(d);const rotate=el('form');const key=formField(rotate,'New public key (base64url)','key');rotate.append(el('button','Rotate key'));rotate.onsubmit=async e=>{e.preventDefault();try{await api('/api/admin/machines/'+m.id+'/rotate','POST',{public_key:key.value});await refresh();}catch(e){message(e.message);}};controls.append(rotate);return [m.id+' / '+m.operator+' (self-declared)',pill(m.effective_state),m.scopes.join(', '),controls];})));c.append(list);const reg=card('Register a public verification key'),f=el('form');formField(f,'Machine identifier','id');formField(f,'Declared operator (not legal verification)','operator');formField(f,'Ed25519 public key (base64url, 32 bytes)','public_key');formField(f,'Resource scopes (comma-separated exact paths)','scopes','/resources/pilot');formField(f,'Credential expiry (UTC)','expires',new Date((now+86400)*1000).toISOString().slice(0,19),'datetime-local');f.append(el('button','Register machine','primary'));f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));try{await api('/api/admin/machines','POST',{id:d.id,operator:d.operator,public_key:d.public_key,scopes:d.scopes.split(',').map(s=>s.trim()),issued_at:now,expires_at:Math.floor(Date.parse(d.expires+'Z')/1000)});await refresh();}catch(e){message(e.message);}};reg.append(f);c.append(reg);}
-if(view==='policies'){const r=card('Protected resources');r.append(table(['Path','Title','Evidence'],snapshot.resources.map(r=>[r.path,r.title,raw(r)])));c.append(r);const p=card('Permission rules · deny takes precedence');p.append(table(['Rule','Machine','Resource','Operations','Effect','Details'],snapshot.policies.map(p=>[p.id,p.machine,p.resource,p.actions.join(', '),pill(p.effect),raw(p)])));c.append(p);const g=el('div',undefined,'grid');g.append(jsonEditor('Protect a real endpoint','/api/admin/resources',{path:'/resources/pilot',title:'Protected pilot document',content:'Owner-controlled resource.'}),jsonEditor('Create or replace a policy','/api/admin/policies',{id:'pilot-read',machine:snapshot.machines[0]?.id||'machine-id',resource:'/resources/pilot',actions:['read'],effect:'allow',not_before:now,expires_at:now+86400,restrictions:'Attribution required. No redistribution.'}));c.append(g,el('p','Actions: read, crawl, index, summarize, download, redistribute. Downstream restrictions are declarations; OwnerGate cannot prove compliance after delivering content.','muted'));}
-if(view==='traffic'){const f=card('Filter actual gateway events'),row=el('div',undefined,'row');const inputs={};for(const [name,label] of [['machine','Machine'],['resource','Resource'],['action','Action'],['decision','Decision'],['from','From (UTC)'],['to','To (UTC)']]){const l=el('label',label),i=el('input');i.type=['from','to'].includes(name)?'datetime-local':'text';l.append(i);row.append(l);inputs[name]=i;}const out=el('div');function update(){out.replaceChildren(eventsTable(events.filter(e=>Object.entries(inputs).every(([k,i])=>!i.value||(k==='from'?e.timestamp>=Date.parse(i.value+'Z')/1000:k==='to'?e.timestamp<=Date.parse(i.value+'Z')/1000:String(e[k]).includes(i.value))))));}Object.values(inputs).forEach(i=>i.oninput=update);f.append(row);c.append(f,out);update();}
-if(view==='audit'){const a=card('Signed audit evidence');a.append(el('p','Every gateway decision and configuration change is hash-linked and signed with Ed25519 compact JWS. Pin this key through a trusted channel before independent verification.'),el('pre',snapshot.audit_public_key),button('Check integrity',async()=>{const r=await api('/api/admin/audit/verify');message(JSON.stringify(r,null,2));}),button('Export signed evidence',async()=>{const data=await api('/api/admin/audit/export'),url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=el('a');link.href=url;link.download='ownergate-audit.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}));a.append(el('p','Signatures establish what this gateway recorded under this key. They do not prove delivery completion, downstream compliance, a complete global history, or the identity of an unverified attacker. Preserve an external checkpoint to detect suffix deletion.','muted'));c.append(a);snapshot.events.slice(-40).reverse().forEach(e=>{const r=card((e.kind==='gateway'?e.decision+' · '+e.reason:'Configuration · '+e.operation)+' / #'+e.sequence);r.append(raw(e));c.append(r);});}
-if(view==='lab'){const intro=card('Real requests. Disposable demonstration credentials.');intro.append(el('p','Each run creates a clearly named lab identity and protected lab endpoint, signs a fresh challenge with a disposable browser key, and sends actual HTTP requests to this gateway. No operational private keys enter the browser. Lab activity remains in the registry and audit log.'),el('p','Use a dedicated local pilot. These checks change its configuration and consume rate limits.','muted'));c.append(intro);const grid=el('div',undefined,'lab-grid');for(const [mode,title,description] of [['authorized','Known authorized machine','Valid proof and a scoped allow policy.'],['unauthorized','Unauthorized registered machine','Valid proof with no allow policy.'],['unknown','Unknown machine','An unregistered caller.'],['revoked','Revoked credential','A registered key revoked before its request.'],['expired','Expired credential','A credential whose validity ended.'],['replay','Replayed challenge','Redeem the same signed challenge twice.'],['tampered','Tampered signature','Change the proof before verification.'],['scope','Invalid resource scope','An allowed policy outside credential scope.']]){const box=el('div',undefined,'lab-case');box.append(el('h3',title),el('p',description),button('Run HTTP check →',async()=>{const result=await runLab(mode);await refresh();message(result);}));grid.append(box);}c.append(grid);}
+"use strict";
+let token = "",
+  snapshot = {},
+  view = "overview";
+const $ = (s) => document.querySelector(s);
+const titles = {
+  overview: ["Overview", "A clear view of who reaches your resources."],
+  machines: [
+    "Machine Registry",
+    "Recognized keys, scoped credentials, and lifecycle controls.",
+  ],
+  policies: [
+    "Resource Policies",
+    "Your resources. Your rules. Enforced at the HTTP boundary.",
+  ],
+  traffic: [
+    "Traffic Monitor",
+    "Inspect actual requests and understand every decision.",
+  ],
+  audit: [
+    "Audit Center",
+    "Inspect, export, and independently verify decision evidence.",
+  ],
+  lab: [
+    "Testing Laboratory",
+    "Adversarial checks against your actual HTTP gateway.",
+  ],
+};
+function el(tag, text, cls) {
+  const n = document.createElement(tag);
+  if (text !== undefined) n.textContent = text;
+  if (cls) n.className = cls;
+  return n;
 }
-function base64(raw){return btoa(String.fromCharCode(...new Uint8Array(raw))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');}
-function canonical(obj){return JSON.stringify(Object.fromEntries(Object.keys(obj).sort().map(k=>[k,obj[k]])));}
-async function runLab(mode){const id='lab-'+mode+'-'+crypto.randomUUID().slice(0,8),path='/resources/'+id,now=Math.floor(Date.now()/1000),key=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']),pub=base64(await crypto.subtle.exportKey('raw',key.publicKey));await api('/api/admin/resources','PUT',{path,title:'Lab HTTP resource',content:'Disposable lab content.'});if(mode!=='unknown'){await api('/api/admin/machines','POST',{id,operator:'DEMONSTRATION LAB (disposable browser key)',public_key:pub,scopes:[mode==='scope'?'/resources/other-lab':path],issued_at:now-100,expires_at:mode==='expired'?now-1:now+600});if(mode!=='unauthorized')await api('/api/admin/policies','PUT',{id,machine:id,resource:path,actions:['read'],effect:'allow',not_before:now-1,expires_at:now+600,restrictions:'Laboratory only'});if(mode==='revoked')await api('/api/admin/machines/'+id,'PATCH',{state:'revoked'});}const ch=await fetch('/api/challenges',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({machine:id,resource:path,action:'read'})});if(!ch.ok)throw Error('Challenge failed: '+await ch.text());const body=await ch.json(),sig=await crypto.subtle.sign('Ed25519',key.privateKey,new TextEncoder().encode(canonical(body))),headers={'X-OwnerGate-Machine':id,'X-OwnerGate-Nonce':body.nonce,'X-OwnerGate-Action':'read','X-OwnerGate-Signature':mode==='tampered'?base64(new Uint8Array(64)):base64(sig)};let response=await fetch(path,{headers});if(mode==='replay'){if(response.status!==200)throw Error('Positive replay control failed');response=await fetch(path,{headers});}const result=await response.json(),expected=mode==='authorized'?200:mode==='unknown'||mode==='tampered'||mode==='replay'?401:403;return (response.status===expected?'PASS':'FAIL')+' · '+mode+' · HTTP '+response.status+' · '+(result.detail||'policy_allow')+' · actual HTTP gateway event';}
+function message(t) {
+  $("#message").textContent = t;
+}
+async function api(path, method = "GET", data) {
+  const r = await fetch(path, {
+    method,
+    headers: {
+      Authorization: "Bearer " + token,
+      ...(data ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(data ? { body: JSON.stringify(data) } : {}),
+  });
+  const body = await r.json();
+  if (!r.ok) throw Error(JSON.stringify(body));
+  return body;
+}
+async function refresh() {
+  try {
+    snapshot = await api("/api/admin/snapshot");
+    $("#login").hidden = true;
+    $("#app").hidden = false;
+    render();
+  } catch (e) {
+    message(e.message);
+  }
+}
+$("#login-form").onsubmit = async (e) => {
+  e.preventDefault();
+  token = $("#token").value;
+  $("#token").value = "";
+  await refresh();
+};
+$("#lock").onclick = () => {
+  token = "";
+  snapshot = {};
+  $("#app").hidden = true;
+  $("#login").hidden = false;
+  $("#content").replaceChildren();
+  message("Workspace locked.");
+};
+$("#refresh").onclick = refresh;
+document.querySelectorAll("[data-view]").forEach(
+  (b) =>
+    (b.onclick = () => {
+      view = b.dataset.view;
+      render();
+    }),
+);
+function card(title) {
+  const c = el("div", undefined, "card");
+  c.append(el("h2", title));
+  return c;
+}
+function button(text, fn, cls) {
+  const b = el("button", text, cls);
+  b.type = "button";
+  b.onclick = async () => {
+    try {
+      b.disabled = true;
+      await fn();
+    } catch (e) {
+      message(e.message);
+    } finally {
+      b.disabled = false;
+    }
+  };
+  return b;
+}
+function table(headings, rows) {
+  const wrap = el("div", undefined, "table-wrap");
+  if (!rows.length) {
+    wrap.append(
+      el(
+        "p",
+        "No records yet. Send a request to see actual gateway activity.",
+        "empty",
+      ),
+    );
+    return wrap;
+  }
+  const t = el("table"),
+    h = el("tr");
+  headings.forEach((x) => h.append(el("th", x)));
+  const th = el("thead");
+  th.append(h);
+  t.append(th);
+  const tb = el("tbody");
+  rows.forEach((row) => {
+    const tr = el("tr");
+    row.forEach((v) => {
+      const td = el("td");
+      td.append(
+        v instanceof Node ? v : document.createTextNode(String(v ?? "")),
+      );
+      tr.append(td);
+    });
+    tb.append(tr);
+  });
+  t.append(tb);
+  wrap.append(t);
+  return wrap;
+}
+function pill(text) {
+  return el("span", text, "pill " + text);
+}
+function raw(data) {
+  const d = el("details");
+  d.append(
+    el("summary", "Inspect evidence"),
+    el("pre", JSON.stringify(data, null, 2)),
+  );
+  return d;
+}
+function formField(form, label, name, value = "", type = "text") {
+  const l = el("label", label),
+    i = el(type === "textarea" ? "textarea" : "input");
+  i.name = name;
+  i.value = value;
+  if (type !== "textarea") i.type = type;
+  i.required = true;
+  l.append(i);
+  form.append(l);
+  return i;
+}
+function jsonEditor(title, path, example) {
+  const c = card(title),
+    f = el("form"),
+    i = formField(
+      f,
+      "Validated JSON configuration",
+      "json",
+      JSON.stringify(example, null, 2),
+      "textarea",
+    );
+  f.append(el("button", "Validate & save", "primary"));
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api(path, "PUT", JSON.parse(i.value));
+      await refresh();
+      message("Configuration validated and saved.");
+    } catch (e) {
+      message(e.message);
+    }
+  };
+  c.append(f);
+  return c;
+}
+function explanation(reason) {
+  const reasons = {
+    policy_allow: "A valid proof matched an allow rule.",
+    unknown_identity: "No recognized machine identity was proven.",
+    missing_or_replayed_challenge:
+      "The challenge is missing or has already been used.",
+    challenge_expired_or_clock_invalid:
+      "The challenge expired or its issue time is in the future.",
+    request_binding_mismatch:
+      "This proof belongs to a different request or key version.",
+    invalid_signature: "The signature does not match the registered key.",
+    credential_revoked: "The owner permanently revoked this credential.",
+    credential_suspended: "The owner suspended this credential.",
+    credential_expired: "The credential has expired.",
+    credential_not_yet_valid: "The credential is not valid yet.",
+    resource_outside_scope: "The credential does not cover this resource.",
+    explicit_deny: "An owner deny rule blocks this operation.",
+    no_allow_policy: "No valid owner rule permits this operation.",
+    unsupported_request_shape:
+      "Only GET requests without a query or body are supported.",
+    unknown_protected_resource:
+      "This protected resource has not been registered.",
+    rate_limited: "The request rate exceeded the gateway limit.",
+  };
+  return reasons[reason] || reason.replaceAll("_", " ");
+}
+function eventsTable(events) {
+  return table(
+    ["Time", "Machine", "Resource / Action", "Decision", "Explanation"],
+    events.map((e) => [
+      new Date(e.timestamp * 1000).toLocaleString(),
+      e.machine,
+      e.resource + " · " + e.action,
+      pill(e.decision),
+      explanation(e.reason),
+    ]),
+  );
+}
+function render() {
+  message("");
+  $("#title").textContent = titles[view][0];
+  $("#subtitle").textContent = titles[view][1];
+  document.querySelectorAll("[data-view]").forEach((b) => {
+    if (b.dataset.view === view) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  });
+  const c = $("#content");
+  c.replaceChildren();
+  const events = snapshot.events.filter((e) => e.kind === "gateway").reverse(),
+    now = Math.floor(Date.now() / 1000);
+  if (view === "overview") {
+    const s = el("div", undefined, "stats");
+    [
+      ["Total requests", events.length, "At the protected boundary"],
+      [
+        "Allowed requests",
+        events.filter((e) => e.decision === "allow").length,
+        "Policy-authorized access",
+      ],
+      [
+        "Denied requests",
+        events.filter((e) => e.decision === "deny").length,
+        "Blocked before content delivery",
+      ],
+      [
+        "Unidentified requests",
+        events.filter((e) => !e.identity_verified).length,
+        "No verified machine proof",
+      ],
+    ].forEach(([title, n, note]) => {
+      const v = el("div", undefined, "stat");
+      v.append(el("span", title), el("strong", n), el("small", note));
+      s.append(v);
+    });
+    c.append(s);
+    const r = card("Recent access decisions");
+    r.append(eventsTable(events.slice(0, 10)));
+    c.append(r);
+    const info = card("The boundary you control");
+    info.append(
+      el(
+        "p",
+        snapshot.resources.length +
+          " protected resources · " +
+          snapshot.machines.length +
+          " registered machines · policy version " +
+          snapshot.policy_version,
+      ),
+      el(
+        "p",
+        "A verified key does not grant permission. A matching allow rule is required; a matching deny rule always wins.",
+        "muted",
+      ),
+    );
+    c.append(info);
+  }
+  if (view === "machines") {
+    const list = card("Registered machine participants");
+    list.append(
+      table(
+        ["Machine / Operator", "Credential", "Scope", "Lifecycle"],
+        snapshot.machines.map((m) => {
+          const controls = el("div");
+          controls.append(
+            button(
+              "Revoke",
+              async () => {
+                await api("/api/admin/machines/" + m.id, "PATCH", {
+                  state: "revoked",
+                });
+                await refresh();
+              },
+              "danger",
+            ),
+            button(
+              m.state === "suspended" ? "Activate" : "Suspend",
+              async () => {
+                await api("/api/admin/machines/" + m.id, "PATCH", {
+                  state: m.state === "suspended" ? "active" : "suspended",
+                });
+                await refresh();
+              },
+            ),
+          );
+          const d = raw(m);
+          controls.append(d);
+          const rotate = el("form");
+          const key = formField(rotate, "New public key (base64url)", "key");
+          rotate.append(el("button", "Rotate key"));
+          rotate.onsubmit = async (e) => {
+            e.preventDefault();
+            try {
+              await api("/api/admin/machines/" + m.id + "/rotate", "POST", {
+                public_key: key.value,
+              });
+              await refresh();
+            } catch (e) {
+              message(e.message);
+            }
+          };
+          controls.append(rotate);
+          return [
+            m.id + " / " + m.operator + " (self-declared)",
+            pill(m.effective_state),
+            m.scopes.join(", "),
+            controls,
+          ];
+        }),
+      ),
+    );
+    c.append(list);
+    const reg = card("Register a public verification key"),
+      f = el("form");
+    formField(f, "Machine identifier", "id");
+    formField(f, "Declared operator (not legal verification)", "operator");
+    formField(f, "Ed25519 public key (base64url, 32 bytes)", "public_key");
+    formField(
+      f,
+      "Resource scopes (comma-separated exact paths)",
+      "scopes",
+      "/resources/pilot",
+    );
+    formField(
+      f,
+      "Credential expiry (UTC)",
+      "expires",
+      new Date((now + 86400) * 1000).toISOString().slice(0, 19),
+      "datetime-local",
+    );
+    f.append(el("button", "Register machine", "primary"));
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(f));
+      try {
+        await api("/api/admin/machines", "POST", {
+          id: d.id,
+          operator: d.operator,
+          public_key: d.public_key,
+          scopes: d.scopes.split(",").map((s) => s.trim()),
+          issued_at: now,
+          expires_at: Math.floor(Date.parse(d.expires + "Z") / 1000),
+        });
+        await refresh();
+      } catch (e) {
+        message(e.message);
+      }
+    };
+    reg.append(f);
+    c.append(reg);
+  }
+  if (view === "policies") {
+    const r = card("Protected resources");
+    r.append(
+      table(
+        ["Path", "Title", "Evidence"],
+        snapshot.resources.map((r) => [r.path, r.title, raw(r)]),
+      ),
+    );
+    c.append(r);
+    const p = card("Permission rules · deny takes precedence");
+    p.append(
+      table(
+        ["Rule", "Machine", "Resource", "Operations", "Effect", "Details"],
+        snapshot.policies.map((p) => [
+          p.id,
+          p.machine,
+          p.resource,
+          p.actions.join(", "),
+          pill(p.effect),
+          raw(p),
+        ]),
+      ),
+    );
+    c.append(p);
+    const g = el("div", undefined, "grid");
+    g.append(
+      jsonEditor("Protect a real endpoint", "/api/admin/resources", {
+        path: "/resources/pilot",
+        title: "Protected pilot document",
+        content: "Owner-controlled resource.",
+      }),
+      jsonEditor("Create or replace a policy", "/api/admin/policies", {
+        id: "pilot-read",
+        machine: snapshot.machines[0]?.id || "machine-id",
+        resource: "/resources/pilot",
+        actions: ["read"],
+        effect: "allow",
+        not_before: now,
+        expires_at: now + 86400,
+        restrictions: "Attribution required. No redistribution.",
+      }),
+    );
+    c.append(
+      g,
+      el(
+        "p",
+        "Actions: read, crawl, index, summarize, download, redistribute. Downstream restrictions are declarations; OwnerGate cannot prove compliance after delivering content.",
+        "muted",
+      ),
+    );
+  }
+  if (view === "traffic") {
+    const f = card("Filter actual gateway events"),
+      row = el("div", undefined, "row");
+    const inputs = {};
+    for (const [name, label] of [
+      ["machine", "Machine"],
+      ["resource", "Resource"],
+      ["action", "Action"],
+      ["decision", "Decision"],
+      ["from", "From (UTC)"],
+      ["to", "To (UTC)"],
+    ]) {
+      const l = el("label", label),
+        i = el("input");
+      i.type = ["from", "to"].includes(name) ? "datetime-local" : "text";
+      l.append(i);
+      row.append(l);
+      inputs[name] = i;
+    }
+    const out = el("div");
+    function update() {
+      out.replaceChildren(
+        eventsTable(
+          events.filter((e) =>
+            Object.entries(inputs).every(
+              ([k, i]) =>
+                !i.value ||
+                (k === "from"
+                  ? e.timestamp >= Date.parse(i.value + "Z") / 1000
+                  : k === "to"
+                    ? e.timestamp <= Date.parse(i.value + "Z") / 1000
+                    : String(e[k]).includes(i.value)),
+            ),
+          ),
+        ),
+      );
+    }
+    Object.values(inputs).forEach((i) => (i.oninput = update));
+    f.append(row);
+    c.append(f, out);
+    update();
+  }
+  if (view === "audit") {
+    const a = card("Signed audit evidence");
+    a.append(
+      el(
+        "p",
+        "Every gateway decision and configuration change is hash-linked and signed with Ed25519 compact JWS. Pin this key through a trusted channel before independent verification.",
+      ),
+      el("pre", snapshot.audit_public_key),
+      button("Check integrity", async () => {
+        const r = await api("/api/admin/audit/verify");
+        message(JSON.stringify(r, null, 2));
+      }),
+      button("Export signed evidence", async () => {
+        const data = await api("/api/admin/audit/export"),
+          url = URL.createObjectURL(
+            new Blob([JSON.stringify(data, null, 2)], {
+              type: "application/json",
+            }),
+          ),
+          link = el("a");
+        link.href = url;
+        link.download = "ownergate-audit.json";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }),
+    );
+    a.append(
+      el(
+        "p",
+        "Signatures establish what this gateway recorded under this key. They do not prove delivery completion, downstream compliance, a complete global history, or the identity of an unverified attacker. Preserve an external checkpoint to detect suffix deletion.",
+        "muted",
+      ),
+    );
+    c.append(a);
+    snapshot.events
+      .slice(-40)
+      .reverse()
+      .forEach((e) => {
+        const r = card(
+          (e.kind === "gateway"
+            ? e.decision + " · " + e.reason
+            : "Configuration · " + e.operation) +
+            " / #" +
+            e.sequence,
+        );
+        r.append(raw(e));
+        c.append(r);
+      });
+  }
+  if (view === "lab") {
+    const intro = card("Real requests. Disposable demonstration credentials.");
+    intro.append(
+      el(
+        "p",
+        "Each run creates a clearly named lab identity and protected lab endpoint, signs a fresh challenge with a disposable browser key, and sends actual HTTP requests to this gateway. No operational private keys enter the browser. Lab activity remains in the registry and audit log.",
+      ),
+      el(
+        "p",
+        "Use a dedicated local pilot. These checks change its configuration and consume rate limits.",
+        "muted",
+      ),
+    );
+    c.append(intro);
+    const grid = el("div", undefined, "lab-grid");
+    for (const [mode, title, description] of [
+      [
+        "authorized",
+        "Known authorized machine",
+        "Valid proof and a scoped allow policy.",
+      ],
+      [
+        "unauthorized",
+        "Unauthorized registered machine",
+        "Valid proof with no allow policy.",
+      ],
+      ["unknown", "Unknown machine", "An unregistered caller."],
+      [
+        "revoked",
+        "Revoked credential",
+        "A registered key revoked before its request.",
+      ],
+      ["expired", "Expired credential", "A credential whose validity ended."],
+      [
+        "replay",
+        "Replayed challenge",
+        "Redeem the same signed challenge twice.",
+      ],
+      [
+        "tampered",
+        "Tampered signature",
+        "Change the proof before verification.",
+      ],
+      [
+        "scope",
+        "Invalid resource scope",
+        "An allowed policy outside credential scope.",
+      ],
+    ]) {
+      const box = el("div", undefined, "lab-case");
+      box.append(
+        el("h3", title),
+        el("p", description),
+        button("Run HTTP check →", async () => {
+          const result = await runLab(mode);
+          await refresh();
+          message(result);
+        }),
+      );
+      grid.append(box);
+    }
+    c.append(grid);
+  }
+}
+function base64(raw) {
+  return btoa(String.fromCharCode(...new Uint8Array(raw)))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+function canonical(obj) {
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.keys(obj)
+        .sort()
+        .map((k) => [k, obj[k]]),
+    ),
+  );
+}
+async function runLab(mode) {
+  const id = "lab-" + mode + "-" + crypto.randomUUID().slice(0, 8),
+    path = "/resources/" + id,
+    now = Math.floor(Date.now() / 1000),
+    key = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"]),
+    pub = base64(await crypto.subtle.exportKey("raw", key.publicKey));
+  await api("/api/admin/resources", "PUT", {
+    path,
+    title: "Lab HTTP resource",
+    content: "Disposable lab content.",
+  });
+  if (mode !== "unknown") {
+    await api("/api/admin/machines", "POST", {
+      id,
+      operator: "DEMONSTRATION LAB (disposable browser key)",
+      public_key: pub,
+      scopes: [mode === "scope" ? "/resources/other-lab" : path],
+      issued_at: now - 100,
+      expires_at: mode === "expired" ? now - 1 : now + 600,
+    });
+    if (mode !== "unauthorized")
+      await api("/api/admin/policies", "PUT", {
+        id,
+        machine: id,
+        resource: path,
+        actions: ["read"],
+        effect: "allow",
+        not_before: now - 1,
+        expires_at: now + 600,
+        restrictions: "Laboratory only",
+      });
+    if (mode === "revoked")
+      await api("/api/admin/machines/" + id, "PATCH", { state: "revoked" });
+  }
+  const ch = await fetch("/api/challenges", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ machine: id, resource: path, action: "read" }),
+  });
+  if (!ch.ok) throw Error("Challenge failed: " + (await ch.text()));
+  const body = await ch.json(),
+    sig = await crypto.subtle.sign(
+      "Ed25519",
+      key.privateKey,
+      new TextEncoder().encode(canonical(body)),
+    ),
+    headers = {
+      "X-OwnerGate-Machine": id,
+      "X-OwnerGate-Nonce": body.nonce,
+      "X-OwnerGate-Action": "read",
+      "X-OwnerGate-Signature":
+        mode === "tampered" ? base64(new Uint8Array(64)) : base64(sig),
+    };
+  let response = await fetch(path, { headers });
+  if (mode === "replay") {
+    if (response.status !== 200) throw Error("Positive replay control failed");
+    response = await fetch(path, { headers });
+  }
+  const result = await response.json(),
+    expected =
+      mode === "authorized"
+        ? 200
+        : mode === "unknown" || mode === "tampered" || mode === "replay"
+          ? 401
+          : 403;
+  return (
+    (response.status === expected ? "PASS" : "FAIL") +
+    " · " +
+    mode +
+    " · HTTP " +
+    response.status +
+    " · " +
+    (result.detail || "policy_allow") +
+    " · actual HTTP gateway event"
+  );
+}
