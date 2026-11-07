@@ -106,3 +106,15 @@ CI automates that path, but a remote CI run has not been observed in this sessio
 No failed check is represented as passing. No remote deployment, production load,
 federation, real operator verification, external-origin gateway integration, or
 third-party penetration test was performed.
+
+## GitHub Pages addition — 2026-11-07
+
+Added the independent static browser demonstration at root `index.html` and
+`site/`, with an explicit simulation banner and no backend connection/token input.
+The new `/OwnerGate/`-prefix Chromium journey passed (all eight isolated scenarios,
+policy deny override, revocation, filters, signed demo exports, tampering detection,
+reset/reload and mobile layout). The combined suite then passed **65 tests** with
+the same retained Starlette deprecation warning. See `evidence/pages-browser.txt`,
+`evidence/pages-release-tests.txt`, `evidence/pages-release-junit.xml` and the
+`pages-desktop.png` / `pages-mobile.png` screenshots. These are local artifact
+checks; deployment verification is a separate check described in [PAGES.md](PAGES.md).
