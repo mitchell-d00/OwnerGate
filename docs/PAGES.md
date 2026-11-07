@@ -77,3 +77,11 @@ python scripts/check_pages.py
 
 This checks HTTPS status and SHA-256 of the live HTML, JavaScript, stylesheet and
 icon; it does not equate HTTP retrieval with a live-device browser journey.
+
+Packaging regression found and fixed: the first CI/install attempt detected
+`site/` as a second top-level Python namespace. `pyproject.toml` now explicitly
+includes only `ownergate*` packages. The initial error, successful reinstall and
+wheel inventory check are retained in `pages-packaging-initial.txt`,
+`pages-packaging-final.txt` and `pages-wheel.txt` under `docs/evidence/`. The
+public site is not shipped as a Python package; operational static assets remain
+included. This failure was not represented as a passing CI run.
